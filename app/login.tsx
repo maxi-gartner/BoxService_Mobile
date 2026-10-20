@@ -44,7 +44,7 @@ export default function LoginScreen() {
             onChangeText={setUsername}
             autoCapitalize="none"
             autoCorrect={false}
-            placeholder="superadmin"
+            placeholder="Ingresá tu usuario"
           />
           <Input
             label="Contraseña"
