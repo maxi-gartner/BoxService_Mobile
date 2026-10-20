@@ -2,10 +2,10 @@ import { Tabs } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 
 const ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
-  dashboard: "home",
+  taller: "build",
   clientes: "people",
   vehiculos: "car",
-  taller: "build",
+  facturas: "receipt",
   mas: "ellipsis-horizontal",
 };
 
@@ -22,10 +22,10 @@ export default function TabsLayout() {
         ),
       })}
     >
-      <Tabs.Screen name="dashboard" options={{ title: "Dashboard" }} />
+      <Tabs.Screen name="taller" options={{ title: "Taller" }} />
       <Tabs.Screen name="clientes" options={{ title: "Clientes" }} />
       <Tabs.Screen name="vehiculos" options={{ title: "Vehículos" }} />
-      <Tabs.Screen name="taller" options={{ title: "Taller" }} />
+      <Tabs.Screen name="facturas" options={{ title: "Facturas" }} />
       <Tabs.Screen name="mas" options={{ title: "Más" }} />
     </Tabs>
   );
