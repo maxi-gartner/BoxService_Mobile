@@ -1,0 +1,29 @@
+name: EAS Update
+
+# Publica una actualización OTA (expo-updates) en cada push a main, al
+# canal "preview" — el mismo canal del APK de demo (eas.json). Quien ya
+# tiene la app instalada la recibe sola la próxima vez que la abre, sin
+# reinstalar nada. Requiere el secret EXPO_TOKEN (Access Token generado
+# en expo.dev → Account Settings → Access Tokens, cargado en
+# Settings → Secrets and variables → Actions de este repo).
+on:
+  push:
+    branches: [main]
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - run: npm install
+
+      - name: Publicar actualización EAS
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+        run: npx eas-cli@latest update --channel preview --environment preview --non-interactive --message "$COMMIT_MESSAGE"

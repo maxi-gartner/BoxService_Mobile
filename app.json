@@ -11,6 +11,7 @@
       "supportsTablet": true
     },
     "android": {
+      "package": "com.boxservice.mobile",
       "adaptiveIcon": {
         "backgroundColor": "#0d1117",
         "foregroundImage": "./assets/android-icon-foreground.png",
@@ -31,6 +32,19 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "dcde18fb-e2bf-4889-aee5-1f2b0d21064a"
+      }
+    },
+    "owner": "boxservice",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/dcde18fb-e2bf-4889-aee5-1f2b0d21064a"
     }
   }
 }
