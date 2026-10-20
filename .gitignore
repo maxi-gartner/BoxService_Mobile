@@ -3,6 +3,16 @@
 # dependencies
 node_modules/
 
+# package-lock.json generado en Windows queda repetidamente inconsistente
+# para el árbol opcional/WASM de @napi-rs/@emnapi/unrs-resolver (npm no
+# escribe ahí la variante que algunos paquetes necesitan en otra
+# plataforma) — EAS Build corre "npm ci" cuando hay lockfile y eso no
+# tiene tolerancia a esa inconsistencia (falla con EUSAGE), mientras que
+# "npm install" sí la resuelve sola. No versionarlo hace que EAS use
+# npm install. Mismo problema y mismo criterio que en
+# BoxService_FrontEnd/.github/workflows/ci.yml.
+package-lock.json
+
 # Expo
 .expo/
 dist/
