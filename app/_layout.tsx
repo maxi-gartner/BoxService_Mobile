@@ -22,6 +22,10 @@ function RootNavigator() {
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Protected guard={!!session}>
         <Stack.Screen name="(tabs)" />
+        <Stack.Screen
+          name="ticket/[serviceId]"
+          options={{ headerShown: true, title: "Comprobante", presentation: "modal" }}
+        />
       </Stack.Protected>
 
       <Stack.Protected guard={!session}>

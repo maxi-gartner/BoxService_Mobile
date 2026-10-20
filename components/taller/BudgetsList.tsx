@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Alert as NativeAlert, FlatList, Text, View } from "react-native";
+import { router } from "expo-router";
 import { useAssignServiceToBudget, useBudgets, useUpdateBudgetStatus } from "@/hooks/useBudgets";
 import { useCreateService, useCreateServiceDetail } from "@/hooks/useServices";
 import { budgetsApi } from "@/lib/api/budgets";
@@ -59,6 +60,13 @@ export function BudgetsList({ vehicle }: { vehicle: Vehicle }) {
     } finally {
       setWorkingId(null);
     }
+  }
+
+  function handleInvoice() {
+    NativeAlert.alert(
+      "Facturación",
+      "Emitir y cobrar facturas desde la app está próximamente. Mientras tanto, se sigue haciendo desde la web.",
+    );
   }
 
   async function handleGenerateService(budget: Budget) {
@@ -146,6 +154,21 @@ export function BudgetsList({ vehicle }: { vehicle: Vehicle }) {
                 <View className="flex-1">
                   <Button size="sm" variant="danger" disabled={busy} onPress={() => confirmReject(b.budgetId, true)}>
                     Cancelar
+                  </Button>
+                </View>
+              </View>
+            )}
+
+            {completed && b.serviceId && (
+              <View className="flex-row gap-2">
+                <View className="flex-1">
+                  <Button size="sm" variant="secondary" onPress={handleInvoice}>
+                    Facturar
+                  </Button>
+                </View>
+                <View className="flex-1">
+                  <Button size="sm" onPress={() => router.push(`/ticket/${b.serviceId!}`)}>
+                    Comprobante
                   </Button>
                 </View>
               </View>
