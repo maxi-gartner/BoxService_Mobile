@@ -45,7 +45,12 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
     body: body !== undefined ? JSON.stringify(body) : undefined,
   });
 
-  if (res.status === 401) {
+  // Un 401 solo significa "se venció la sesión" si había una sesión de
+  // la que colgarse — si la request se mandó sin token (ej. el intento
+  // de login en sí, que también puede dar 401 con credenciales
+  // inválidas), hay que mostrar el error real del backend, no este
+  // mensaje genérico.
+  if (res.status === 401 && session) {
     await clearSession();
     onUnauthorized?.();
     throw new ApiClientError("Sesión expirada", 401);
