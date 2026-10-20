@@ -28,6 +28,12 @@ export type ClientCreateRequest = {
   email?: string;
 };
 
+export type PortalInvite = {
+  inviteUrl: string;
+  whatsappUrl: string;
+  expiresAt: string;
+};
+
 // ── Vehículos ─────────────────────────────────────────
 export type Vehicle = {
   vehicleId: number;
