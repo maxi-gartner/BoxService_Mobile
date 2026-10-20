@@ -1,10 +1,13 @@
 import { useState } from "react";
 import { Alert as NativeAlert, FlatList, Text, View } from "react-native";
 import { router } from "expo-router";
+import { useQuery } from "@tanstack/react-query";
 import { useAssignServiceToBudget, useBudgets, useUpdateBudgetStatus } from "@/hooks/useBudgets";
 import { useCreateService, useCreateServiceDetail } from "@/hooks/useServices";
 import { budgetsApi } from "@/lib/api/budgets";
+import { clientsApi } from "@/lib/api/clients";
 import { ApiClientError } from "@/lib/api/client";
+import { printPresupuesto } from "@/lib/pdf";
 import { Badge } from "@/components/ui/Badge";
 import { Banner } from "@/components/ui/Banner";
 import { Button } from "@/components/ui/Button";
@@ -17,6 +20,10 @@ function isCompleted(b: Budget) {
 
 export function BudgetsList({ vehicle }: { vehicle: Vehicle }) {
   const { data: budgets, isLoading } = useBudgets();
+  const { data: client } = useQuery({
+    queryKey: ["clients", vehicle.clientId],
+    queryFn: () => clientsApi.getById(vehicle.clientId),
+  });
   const updateStatus = useUpdateBudgetStatus();
   const assignService = useAssignServiceToBudget();
   const createService = useCreateService();
@@ -24,6 +31,7 @@ export function BudgetsList({ vehicle }: { vehicle: Vehicle }) {
 
   const [message, setMessage] = useState<{ type: "ok" | "error"; text: string } | null>(null);
   const [workingId, setWorkingId] = useState<number | null>(null);
+  const [printingId, setPrintingId] = useState<number | null>(null);
 
   const mine = (budgets ?? []).filter((b) => b.vehicleId === vehicle.vehicleId);
 
@@ -59,6 +67,28 @@ export function BudgetsList({ vehicle }: { vehicle: Vehicle }) {
       setMessage({ type: "error", text: err instanceof ApiClientError ? err.message : "No se pudo actualizar." });
     } finally {
       setWorkingId(null);
+    }
+  }
+
+  async function handlePrint(b: Budget) {
+    if (!client) return;
+    setPrintingId(b.budgetId);
+    try {
+      const detail = await budgetsApi.getById(b.budgetId);
+      await printPresupuesto({
+        number: b.number,
+        status: b.status,
+        date: b.date,
+        client,
+        vehicle,
+        details: detail.details,
+        total: detail.total,
+        notes: b.notes,
+      });
+    } catch (err) {
+      setMessage({ type: "error", text: err instanceof ApiClientError ? err.message : "No se pudo generar el PDF." });
+    } finally {
+      setPrintingId(null);
     }
   }
 
@@ -128,6 +158,15 @@ export function BudgetsList({ vehicle }: { vehicle: Vehicle }) {
               </View>
               <Badge status={completed ? "completed" : b.status} />
             </View>
+
+            <Button
+              size="sm"
+              variant="secondary"
+              disabled={!client || printingId === b.budgetId}
+              onPress={() => handlePrint(b)}
+            >
+              {printingId === b.budgetId ? "Generando..." : "Imprimir / PDF"}
+            </Button>
 
             {(b.status === "draft" || b.status === "sent") && (
               <View className="flex-row gap-2">
