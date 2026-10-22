@@ -1,5 +1,5 @@
 import { api } from "./client";
-import type { Budget, BudgetCreateRequest, BudgetStatus, BudgetWithDetails } from "@/types/entities";
+import type { Budget, BudgetCreateRequest, BudgetDetailRequest, BudgetStatus, BudgetWithDetails } from "@/types/entities";
 
 export const budgetsApi = {
   list: () => api.get<Budget[]>("budgets"),
@@ -9,4 +9,8 @@ export const budgetsApi = {
     api.patch<{ budgetId: number; status: BudgetStatus; message?: string }>(`budgets/${id}`, { status }),
   assignService: (budgetId: number, serviceId: number) =>
     api.put<{ message: string }>(`budgets/${budgetId}/service`, { serviceId }),
+  // Reemplaza los ítems de un presupuesto no finalizado (draft/sent/
+  // approved) — para sumar o sacar algo de último momento sin cancelar.
+  updateDetails: (id: number, details: BudgetDetailRequest[]) =>
+    api.put<BudgetWithDetails>(`budgets/${id}/details`, { details }),
 };

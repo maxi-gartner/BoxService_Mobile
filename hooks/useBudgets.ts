@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { budgetsApi } from "@/lib/api/budgets";
-import type { BudgetCreateRequest, BudgetStatus } from "@/types/entities";
+import type { BudgetCreateRequest, BudgetDetailRequest, BudgetStatus } from "@/types/entities";
 
 // Estado del taller en vivo: más de un puesto puede aprobar/cambiar un
 // presupuesto al mismo tiempo — mismo criterio que la web, refetch al
@@ -9,6 +9,15 @@ export function useBudgets() {
   return useQuery({
     queryKey: ["budgets"],
     queryFn: budgetsApi.list,
+    staleTime: 15_000,
+  });
+}
+
+export function useBudget(id: number | null) {
+  return useQuery({
+    queryKey: ["budgets", id],
+    queryFn: () => budgetsApi.getById(id as number),
+    enabled: id !== null,
     staleTime: 15_000,
   });
 }
@@ -43,6 +52,15 @@ export function useAssignServiceToBudget() {
   return useMutation({
     mutationFn: ({ budgetId, serviceId }: { budgetId: number; serviceId: number }) =>
       budgetsApi.assignService(budgetId, serviceId),
+    onSuccess: invalidate,
+  });
+}
+
+export function useUpdateBudgetDetails() {
+  const invalidate = useInvalidateBudgets();
+  return useMutation({
+    mutationFn: ({ id, details }: { id: number; details: BudgetDetailRequest[] }) =>
+      budgetsApi.updateDetails(id, details),
     onSuccess: invalidate,
   });
 }
