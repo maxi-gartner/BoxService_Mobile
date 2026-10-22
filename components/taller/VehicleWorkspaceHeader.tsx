@@ -1,10 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import { clientsApi } from "@/lib/api/clients";
-import { Button } from "@/components/ui/Button";
 import type { Vehicle } from "@/types/entities";
 
-export type TallerSection = "resumen" | "presupuestos" | "historial";
+export type TallerSection = "resumen" | "presupuestos" | "historial" | "nuevo-presupuesto" | "nuevo-service";
 
 const SECTIONS: { id: TallerSection; label: string }[] = [
   { id: "resumen", label: "Resumen" },
@@ -12,20 +11,24 @@ const SECTIONS: { id: TallerSection; label: string }[] = [
   { id: "historial", label: "Historial" },
 ];
 
+// Mismos tabs que SECTIONS (misma barra, mismo resaltado) en vez de
+// botones aparte arriba — armar un presupuesto se ve como "entrar a
+// otra sección", no como una acción fuera de lugar.
+const ACTIONS: { id: TallerSection; label: string }[] = [
+  { id: "nuevo-presupuesto", label: "+ Presupuesto" },
+  { id: "nuevo-service", label: "+ Service" },
+];
+
 export function VehicleWorkspaceHeader({
   vehicle,
   section,
   onChangeSection,
   onChangeVehicle,
-  onNewBudget,
-  onNewService,
 }: {
   vehicle: Vehicle;
   section: TallerSection;
   onChangeSection: (section: TallerSection) => void;
   onChangeVehicle: () => void;
-  onNewBudget: () => void;
-  onNewService: () => void;
 }) {
   const { data: client } = useQuery({
     queryKey: ["clients", vehicle.clientId],
@@ -49,22 +52,9 @@ export function VehicleWorkspaceHeader({
         </Pressable>
       </View>
 
-      <View className="mt-3 flex-row gap-2">
-        <View className="flex-1">
-          <Button size="sm" variant="secondary" onPress={onNewBudget}>
-            + Presupuesto
-          </Button>
-        </View>
-        <View className="flex-1">
-          <Button size="sm" onPress={onNewService}>
-            + Service
-          </Button>
-        </View>
-      </View>
-
       <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mt-3">
         <View className="flex-row gap-1">
-          {SECTIONS.map((s) => (
+          {[...SECTIONS, ...ACTIONS].map((s) => (
             <Pressable
               key={s.id}
               onPress={() => onChangeSection(s.id)}

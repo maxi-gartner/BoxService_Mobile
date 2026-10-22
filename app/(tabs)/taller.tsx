@@ -10,7 +10,7 @@ import { NewBudgetTab } from "@/components/taller/NewBudgetTab";
 import { NewServiceTab } from "@/components/taller/NewServiceTab";
 import type { Vehicle } from "@/types/entities";
 
-type View = TallerSection | "nuevo-presupuesto" | "nuevo-service";
+type View = TallerSection;
 
 export default function TallerScreen() {
   const queryClient = useQueryClient();
@@ -43,11 +43,9 @@ export default function TallerScreen() {
     <Screen>
       <VehicleWorkspaceHeader
         vehicle={vehicle}
-        section={view === "nuevo-presupuesto" || view === "nuevo-service" ? "resumen" : view}
+        section={view}
         onChangeSection={setView}
         onChangeVehicle={handleChangeVehicle}
-        onNewBudget={() => setView("nuevo-presupuesto")}
-        onNewService={() => setView("nuevo-service")}
       />
 
       {view === "resumen" && <VehicleOverview vehicle={vehicle} />}
