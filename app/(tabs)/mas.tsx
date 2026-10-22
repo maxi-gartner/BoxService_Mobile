@@ -1,4 +1,5 @@
 import { Text, View } from "react-native";
+import { router } from "expo-router";
 import { Screen } from "@/components/ui/Screen";
 import { Button } from "@/components/ui/Button";
 import { useAuth } from "@/lib/auth/AuthContext";
@@ -17,6 +18,12 @@ export default function MasScreen() {
           </Text>
           {session?.tenantName && <Text className="text-muted text-sm">{session.tenantName}</Text>}
         </View>
+
+        {session?.role === "owner" && (
+          <Button variant="secondary" onPress={() => router.push("/metricas")}>
+            📊 Métricas del taller
+          </Button>
+        )}
 
         <Button variant="secondary" onPress={logout}>
           Cerrar sesión

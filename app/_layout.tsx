@@ -56,6 +56,7 @@ function RootNavigator() {
           name="ticket/[serviceId]"
           options={{ headerShown: true, title: "Comprobante", presentation: "modal" }}
         />
+        <Stack.Screen name="metricas" options={{ headerShown: true, title: "Métricas" }} />
       </Stack.Protected>
 
       <Stack.Protected guard={!session}>
