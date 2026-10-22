@@ -7,6 +7,7 @@ import { Banner } from "@/components/ui/Banner";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Screen } from "@/components/ui/Screen";
+import { ResetPasswordRow } from "@/components/admin/ResetPasswordRow";
 import type { Sucursal, UserAccount } from "@/types/entities";
 
 type Message = { type: "ok" | "error"; text: string } | null;
@@ -99,18 +100,23 @@ function EmpleadosView() {
           <Text className={`text-xs ${item.active ? "text-success" : "text-danger"}`}>
             {item.active ? "Activo" : "Inactivo"}
           </Text>
-          {item.role !== "dueno" && (
-            <View className="mt-2">
-              <Button
-                size="sm"
-                variant={item.active ? "danger" : "secondary"}
-                disabled={workingId === item.userId}
-                onPress={() => toggleActive(item)}
-              >
-                {item.active ? "Desactivar" : "Activar"}
-              </Button>
+          <View className="mt-2 flex-row gap-2">
+            {item.role !== "dueno" && (
+              <View className="flex-1">
+                <Button
+                  size="sm"
+                  variant={item.active ? "danger" : "secondary"}
+                  disabled={workingId === item.userId}
+                  onPress={() => toggleActive(item)}
+                >
+                  {item.active ? "Desactivar" : "Activar"}
+                </Button>
+              </View>
+            )}
+            <View className="flex-1">
+              <ResetPasswordRow userId={item.userId} onDone={(msg) => msg && setMessage(msg)} />
             </View>
-          )}
+          </View>
         </View>
       )}
     />

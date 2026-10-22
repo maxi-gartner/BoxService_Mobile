@@ -10,6 +10,7 @@ const ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
   admin: "settings",
   tenants: "business",
   usuarios: "people-circle",
+  pagos: "cash",
   mas: "ellipsis-horizontal",
 };
 
@@ -41,6 +42,7 @@ export default function TabsLayout() {
       <Tabs.Screen name="admin" options={{ title: "Admin", href: isOwner ? undefined : null }} />
       <Tabs.Screen name="tenants" options={{ title: "Talleres", href: isSuperadmin ? undefined : null }} />
       <Tabs.Screen name="usuarios" options={{ title: "Usuarios", href: isSuperadmin ? undefined : null }} />
+      <Tabs.Screen name="pagos" options={{ title: "Pagos", href: isSuperadmin ? undefined : null }} />
       <Tabs.Screen name="mas" options={{ title: "Más" }} />
     </Tabs>
   );

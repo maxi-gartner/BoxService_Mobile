@@ -6,7 +6,10 @@ import { ApiClientError } from "@/lib/api/client";
 import { Banner } from "@/components/ui/Banner";
 import { Button } from "@/components/ui/Button";
 import { Screen } from "@/components/ui/Screen";
+import { ResetPasswordRow } from "@/components/admin/ResetPasswordRow";
 import type { AdminClientRow, UserAccount } from "@/types/entities";
+
+type Message = { type: "ok" | "error"; text: string } | null;
 
 const ROLE_LABEL: Record<string, string> = { dueno: "Dueño", empleado: "Empleado" };
 
@@ -21,12 +24,13 @@ function Tab({ label, active, onPress }: { label: string; active: boolean; onPre
   );
 }
 
-function PersonalList({ users, isLoading, message, onToggle, workingId }: {
+function PersonalList({ users, isLoading, message, onToggle, workingId, onMessage }: {
   users: UserAccount[] | undefined;
   isLoading: boolean;
-  message: { type: "ok" | "error"; text: string } | null;
+  message: Message;
   onToggle: (u: UserAccount) => void;
   workingId: number | null;
+  onMessage: (msg: Message) => void;
 }) {
   return (
     <FlatList
@@ -46,15 +50,20 @@ function PersonalList({ users, isLoading, message, onToggle, workingId }: {
           <Text className={`text-xs ${item.active ? "text-success" : "text-danger"}`}>
             {item.active ? "Activo" : "Inactivo"}
           </Text>
-          <View className="mt-2">
-            <Button
-              size="sm"
-              variant={item.active ? "danger" : "secondary"}
-              disabled={workingId === item.userId}
-              onPress={() => onToggle(item)}
-            >
-              {item.active ? "Desactivar" : "Activar"}
-            </Button>
+          <View className="mt-2 flex-row gap-2">
+            <View className="flex-1">
+              <Button
+                size="sm"
+                variant={item.active ? "danger" : "secondary"}
+                disabled={workingId === item.userId}
+                onPress={() => onToggle(item)}
+              >
+                {item.active ? "Desactivar" : "Activar"}
+              </Button>
+            </View>
+            <View className="flex-1">
+              <ResetPasswordRow userId={item.userId} onDone={onMessage} />
+            </View>
           </View>
         </View>
       )}
@@ -88,7 +97,7 @@ export default function UsuariosScreen() {
   const { data: users, isLoading: usersLoading } = useUsers();
   const { data: clientRows, isLoading: clientsLoading } = useAdminClients();
   const updateUser = useUpdateUser();
-  const [message, setMessage] = useState<{ type: "ok" | "error"; text: string } | null>(null);
+  const [message, setMessage] = useState<Message>(null);
   const [workingId, setWorkingId] = useState<number | null>(null);
 
   async function handleToggle(user: UserAccount) {
@@ -114,7 +123,14 @@ export default function UsuariosScreen() {
       </View>
 
       {view === "personal" ? (
-        <PersonalList users={users} isLoading={usersLoading} message={message} onToggle={handleToggle} workingId={workingId} />
+        <PersonalList
+          users={users}
+          isLoading={usersLoading}
+          message={message}
+          onToggle={handleToggle}
+          workingId={workingId}
+          onMessage={(msg) => msg && setMessage(msg)}
+        />
       ) : (
         <ClientesList rows={clientRows} isLoading={clientsLoading} />
       )}
