@@ -15,6 +15,7 @@ export default function MasScreen() {
           <Text className="text-muted text-sm">
             {session ? ROLE_LABELS[session.role] : ""}
           </Text>
+          {session?.tenantName && <Text className="text-muted text-sm">{session.tenantName}</Text>}
         </View>
 
         <Button variant="secondary" onPress={logout}>

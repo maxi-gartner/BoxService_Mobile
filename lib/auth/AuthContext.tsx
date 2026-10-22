@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { api, ApiClientError, setUnauthorizedHandler } from "@/lib/api/client";
 import { clearSession, getSession, saveSession, toRole, type Session } from "@/lib/auth/session";
-import type { LoginResponse } from "@/types/auth";
+import type { LoginResponse, MeResponse } from "@/types/auth";
 
 type AuthState = {
   session: Session | null;
@@ -36,9 +36,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       expiresAt: result.expiresAt,
       username: result.username,
       role: toRole(result.role),
+      tenantId: null,
+      tenantName: null,
     };
+    // Se guarda primero sin tenant: lib/api/client.ts lee el token de
+    // SecureStore, así que /auth/me necesita esto ya persistido.
     await saveSession(next);
     setSession(next);
+
+    try {
+      const me = await api.get<MeResponse>("auth/me");
+      const withTenant: Session = { ...next, tenantId: me.tenantId, tenantName: me.tenantName };
+      await saveSession(withTenant);
+      setSession(withTenant);
+    } catch {
+      // El login ya quedó andando sin el tenant — no lo bloqueamos por esto.
+    }
   }
 
   async function logout() {

@@ -15,6 +15,9 @@ export type Session = {
   expiresAt: string;
   username: string;
   role: Role;
+  /** null para superadmin (no pertenece a un tenant). */
+  tenantId: number | null;
+  tenantName: string | null;
 };
 
 export async function saveSession(session: Session): Promise<void> {

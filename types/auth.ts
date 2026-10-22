@@ -58,3 +58,15 @@ export type AccessTokenClaims = {
   tenantId?: string | null;
   exp: number;
 };
+
+/**
+ * GET /auth/me — se pide una vez después del login para saber el tenant
+ * real (nombre incluido, no solo el id que ya viaja en el JWT). null
+ * solo para superadmin, que no pertenece a un tenant.
+ */
+export type MeResponse = {
+  username: string;
+  role: "dueno" | "superadmin" | "empleado";
+  tenantId: number | null;
+  tenantName: string | null;
+};
