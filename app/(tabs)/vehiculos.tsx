@@ -2,12 +2,29 @@ import { useMemo, useState } from "react";
 import { FlatList, Pressable, Text, View } from "react-native";
 import { useClients } from "@/hooks/useClients";
 import { useCreateVehicle, useVehicles } from "@/hooks/useVehicles";
+import { useVehicleBrands, useVehicleModels, useVehicleVersions } from "@/hooks/useVehicleCatalog";
 import { ApiClientError } from "@/lib/api/client";
 import { Banner } from "@/components/ui/Banner";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Screen } from "@/components/ui/Screen";
 import { SelectField } from "@/components/ui/SelectField";
+import type { VehicleCatalogOption } from "@/types/entities";
+
+const OTHER_BRAND = "__otra__";
+
+function SuggestionChips({ options, onPick }: { options: VehicleCatalogOption[] | undefined; onPick: (name: string) => void }) {
+  if (!options?.length) return null;
+  return (
+    <View className="flex-row flex-wrap gap-2">
+      {options.slice(0, 12).map((o) => (
+        <Pressable key={o.id} onPress={() => onPick(o.name)} className="rounded-full border border-border bg-surface px-3 py-1.5">
+          <Text className="text-xs text-light">{o.name}</Text>
+        </Pressable>
+      ))}
+    </View>
+  );
+}
 
 export default function VehiculosScreen() {
   const { data: vehicles, isLoading } = useVehicles();
@@ -20,15 +37,35 @@ export default function VehiculosScreen() {
     return map;
   }, [clients]);
 
+  const { data: brands } = useVehicleBrands();
+
   const [search, setSearch] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [clientId, setClientId] = useState("");
   const [plate, setPlate] = useState("");
   const [brand, setBrand] = useState("");
+  const [customBrand, setCustomBrand] = useState(false);
   const [model, setModel] = useState("");
+  const [version, setVersion] = useState("");
   const [year, setYear] = useState("");
   const [mileage, setMileage] = useState("");
   const [message, setMessage] = useState<{ type: "ok" | "error"; text: string } | null>(null);
+
+  // Las sugerencias de modelo/versión dependen de la marca/modelo
+  // elegidos — se resuelven por nombre contra lo que ya trajo ML.
+  const brandId = brands?.find((b) => b.name === brand)?.id ?? null;
+  const { data: models } = useVehicleModels(brandId);
+  const modelId = models?.find((m) => m.name === model)?.id ?? null;
+  const { data: versions } = useVehicleVersions(brandId, modelId);
+
+  function handleBrandChange(value: string) {
+    if (value === OTHER_BRAND) {
+      setCustomBrand(true);
+      setBrand("");
+    } else {
+      setBrand(value);
+    }
+  }
 
   async function handleCreate() {
     if (!clientId) {
@@ -46,6 +83,7 @@ export default function VehiculosScreen() {
         plate: plate.trim().toUpperCase(),
         brand: brand.trim(),
         model: model.trim(),
+        version: version.trim() || undefined,
         year: year ? Number(year) : null,
         currentMileage: mileage ? Number(mileage) : 0,
       });
@@ -53,7 +91,9 @@ export default function VehiculosScreen() {
       setClientId("");
       setPlate("");
       setBrand("");
+      setCustomBrand(false);
       setModel("");
+      setVersion("");
       setYear("");
       setMileage("");
       setShowForm(false);
@@ -97,14 +137,30 @@ export default function VehiculosScreen() {
                   onChange={setClientId}
                 />
                 <Input label="Patente" placeholder="AB123CD" autoCapitalize="characters" value={plate} onChangeText={setPlate} />
-                <View className="flex-row gap-2">
-                  <View className="flex-1">
-                    <Input label="Marca" placeholder="Toyota" value={brand} onChangeText={setBrand} />
-                  </View>
-                  <View className="flex-1">
-                    <Input label="Modelo" placeholder="Corolla" value={model} onChangeText={setModel} />
-                  </View>
-                </View>
+
+                {customBrand || !brands?.length ? (
+                  <Input label="Marca" placeholder="Toyota" value={brand} onChangeText={setBrand} />
+                ) : (
+                  <SelectField
+                    label="Marca"
+                    value={brand}
+                    placeholder="Elegí una marca…"
+                    options={[...brands.map((b) => ({ value: b.name, label: b.name })), { value: OTHER_BRAND, label: "Otra (escribir)…" }]}
+                    onChange={handleBrandChange}
+                  />
+                )}
+                {customBrand && (
+                  <Pressable onPress={() => { setCustomBrand(false); setBrand(""); }}>
+                    <Text className="text-xs text-accent">Elegir de la lista</Text>
+                  </Pressable>
+                )}
+
+                <Input label="Modelo" placeholder="Corolla" value={model} onChangeText={setModel} />
+                <SuggestionChips options={models} onPick={setModel} />
+
+                <Input label="Versión (opcional)" placeholder="XEI 1.8" value={version} onChangeText={setVersion} />
+                <SuggestionChips options={versions} onPick={setVersion} />
+
                 <View className="flex-row gap-2">
                   <View className="flex-1">
                     <Input label="Año" placeholder="2020" keyboardType="numeric" value={year} onChangeText={setYear} />
@@ -136,6 +192,7 @@ export default function VehiculosScreen() {
             <Text className="font-semibold text-light">
               {item.brand} {item.model}
             </Text>
+            {!!item.version && <Text className="text-xs text-muted">{item.version}</Text>}
             <Text className="text-sm text-accent">{item.plate}</Text>
             <Text className="text-xs text-muted">
               {clientsById.get(item.clientId) ?? `Cliente #${item.clientId}`}
