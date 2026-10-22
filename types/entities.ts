@@ -6,10 +6,90 @@
  * ver BoxService_FrontEnd/web/docs/API_CONTRACT.md como fuente de verdad.
  */
 
+// ── Administración (superadmin) ───────────────────────
+// Tenant real (tabla "tenants"). A diferencia del tenantId de las
+// entidades de negocio de abajo (que lo mantienen como string por
+// compatibilidad histórica con el front web), este es el id real del
+// tenant en sí: viaja como número en el JSON.
 export type Tenant = {
-  tenantId: string;
+  tenantId: number;
   name: string;
+  active: boolean;
   createdAt: string;
+};
+
+export type TenantCreateRequest = {
+  businessName: string;
+  ownerName: string;
+  username: string;
+  password: string;
+};
+
+export type TenantCreateResult = {
+  tenantId: number;
+  name: string;
+  owner: { userId: number; username: string; name: string };
+};
+
+export type TenantUpdateRequest = {
+  active?: boolean;
+};
+
+export type Sucursal = {
+  sucursalId: number;
+  tenantId: number;
+  name: string;
+  address: string | null;
+  active: boolean;
+  createdAt: string;
+};
+
+export type SucursalCreateRequest = {
+  name: string;
+  address?: string | null;
+};
+
+export type SucursalUpdateRequest = {
+  name?: string;
+  address?: string | null;
+  active?: boolean;
+};
+
+export type UserRole = "superadmin" | "dueno" | "empleado";
+
+// Fila real de "usuarios". Nunca incluye el hash de contraseña.
+export type UserAccount = {
+  userId: number;
+  tenantId: number | null;
+  tenantName: string | null;
+  username: string;
+  name: string;
+  email: string | null;
+  role: UserRole;
+  active: boolean;
+  createdAt: string;
+};
+
+export type UserCreateRequest = {
+  username: string;
+  password: string;
+  name: string;
+  email?: string | null;
+  /** Solo lo usa superadmin vía POST /tenants/{id}/users; dueno siempre crea "empleado". */
+  role?: UserRole;
+};
+
+export type UserUpdateRequest = {
+  name?: string;
+  email?: string | null;
+  active?: boolean;
+};
+
+// GET /admin/clients (superadmin) — misma forma que Client, con el
+// nombre del tenant embebido para distinguir a quién pertenece cada uno.
+export type AdminClientRow = {
+  client: Client;
+  tenantName: string;
 };
 
 // ── Clientes ──────────────────────────────────────────
