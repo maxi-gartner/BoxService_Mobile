@@ -94,8 +94,8 @@ export default function MetricasScreen() {
           ))}
         </Card>
 
-        <RankingSection title="Lo que más plata da" items={data.topServicesByRevenue} />
-        <RankingSection title="Lo que más se pide" items={data.topServicesByFrequency} />
+        <RankingSection title="Servicios que generan mayor ingreso" items={data.topServicesByRevenue} />
+        <RankingSection title="Servicios más pedidos" items={data.topServicesByFrequency} />
       </ScrollView>
     </Screen>
   );
