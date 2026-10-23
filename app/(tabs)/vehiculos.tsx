@@ -9,22 +9,10 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Screen } from "@/components/ui/Screen";
 import { SelectField } from "@/components/ui/SelectField";
-import type { VehicleCatalogOption } from "@/types/entities";
 
 const OTHER_BRAND = "__otra__";
-
-function SuggestionChips({ options, onPick }: { options: VehicleCatalogOption[] | undefined; onPick: (name: string) => void }) {
-  if (!options?.length) return null;
-  return (
-    <View className="flex-row flex-wrap gap-2">
-      {options.slice(0, 12).map((o) => (
-        <Pressable key={o.id} onPress={() => onPick(o.name)} className="rounded-full border border-border bg-surface px-3 py-1.5">
-          <Text className="text-xs text-light">{o.name}</Text>
-        </Pressable>
-      ))}
-    </View>
-  );
-}
+const OTHER_MODEL = "__otro__";
+const OTHER_VERSION = "__otra_version__";
 
 export default function VehiculosScreen() {
   const { data: vehicles, isLoading } = useVehicles();
@@ -46,17 +34,26 @@ export default function VehiculosScreen() {
   const [brand, setBrand] = useState("");
   const [customBrand, setCustomBrand] = useState(false);
   const [model, setModel] = useState("");
+  const [customModel, setCustomModel] = useState(false);
   const [version, setVersion] = useState("");
+  const [customVersion, setCustomVersion] = useState(false);
   const [year, setYear] = useState("");
   const [mileage, setMileage] = useState("");
   const [message, setMessage] = useState<{ type: "ok" | "error"; text: string } | null>(null);
 
-  // Las sugerencias de modelo/versión dependen de la marca/modelo
-  // elegidos — se resuelven por nombre contra lo que ya trajo ML.
+  // Modelo y versión dependen en cascada de la marca/modelo elegidos —
+  // se resuelven por nombre contra el catálogo de ArgAutos.
   const brandId = brands?.find((b) => b.name === brand)?.id ?? null;
   const { data: models } = useVehicleModels(brandId);
   const modelId = models?.find((m) => m.name === model)?.id ?? null;
   const { data: versions } = useVehicleVersions(brandId, modelId);
+
+  function resetModelAndVersion() {
+    setModel("");
+    setVersion("");
+    setCustomModel(false);
+    setCustomVersion(false);
+  }
 
   function handleBrandChange(value: string) {
     if (value === OTHER_BRAND) {
@@ -64,6 +61,27 @@ export default function VehiculosScreen() {
       setBrand("");
     } else {
       setBrand(value);
+    }
+    resetModelAndVersion();
+  }
+
+  function handleModelChange(value: string) {
+    if (value === OTHER_MODEL) {
+      setCustomModel(true);
+      setModel("");
+    } else {
+      setModel(value);
+    }
+    setVersion("");
+    setCustomVersion(false);
+  }
+
+  function handleVersionChange(value: string) {
+    if (value === OTHER_VERSION) {
+      setCustomVersion(true);
+      setVersion("");
+    } else {
+      setVersion(value);
     }
   }
 
@@ -93,7 +111,9 @@ export default function VehiculosScreen() {
       setBrand("");
       setCustomBrand(false);
       setModel("");
+      setCustomModel(false);
       setVersion("");
+      setCustomVersion(false);
       setYear("");
       setMileage("");
       setShowForm(false);
@@ -150,16 +170,44 @@ export default function VehiculosScreen() {
                   />
                 )}
                 {customBrand && (
-                  <Pressable onPress={() => { setCustomBrand(false); setBrand(""); }}>
+                  <Pressable onPress={() => { setCustomBrand(false); setBrand(""); resetModelAndVersion(); }}>
                     <Text className="text-xs text-accent">Elegir de la lista</Text>
                   </Pressable>
                 )}
 
-                <Input label="Modelo" placeholder="Corolla" value={model} onChangeText={setModel} />
-                <SuggestionChips options={models} onPick={setModel} />
+                {customModel || !brandId || !models?.length ? (
+                  <Input label="Modelo" placeholder="Corolla" value={model} onChangeText={setModel} />
+                ) : (
+                  <SelectField
+                    label="Modelo"
+                    value={model}
+                    placeholder="Elegí un modelo…"
+                    options={[...models.map((m) => ({ value: m.name, label: m.name })), { value: OTHER_MODEL, label: "Otro (escribir)…" }]}
+                    onChange={handleModelChange}
+                  />
+                )}
+                {customModel && brandId && !!models?.length && (
+                  <Pressable onPress={() => { setCustomModel(false); setModel(""); setVersion(""); setCustomVersion(false); }}>
+                    <Text className="text-xs text-accent">Elegir de la lista</Text>
+                  </Pressable>
+                )}
 
-                <Input label="Versión (opcional)" placeholder="XEI 1.8" value={version} onChangeText={setVersion} />
-                <SuggestionChips options={versions} onPick={setVersion} />
+                {customVersion || !modelId || !versions?.length ? (
+                  <Input label="Versión (opcional)" placeholder="XEI 1.8" value={version} onChangeText={setVersion} />
+                ) : (
+                  <SelectField
+                    label="Versión (opcional)"
+                    value={version}
+                    placeholder="Sin especificar"
+                    options={[...versions.map((v) => ({ value: v.name, label: v.name })), { value: OTHER_VERSION, label: "Otra (escribir)…" }]}
+                    onChange={handleVersionChange}
+                  />
+                )}
+                {customVersion && modelId && !!versions?.length && (
+                  <Pressable onPress={() => { setCustomVersion(false); setVersion(""); }}>
+                    <Text className="text-xs text-accent">Elegir de la lista</Text>
+                  </Pressable>
+                )}
 
                 <View className="flex-row gap-2">
                   <View className="flex-1">
