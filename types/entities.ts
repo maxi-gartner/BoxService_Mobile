@@ -6,6 +6,16 @@
  * ver BoxService_FrontEnd/web/docs/API_CONTRACT.md como fuente de verdad.
  */
 
+// Forma de respuesta de los listados grandes (Clientes, Vehículos,
+// Facturas) — reemplaza al array simple que devolvían antes.
+export type PagedResult<T> = {
+  items: T[];
+  page: number;
+  pageSize: number;
+  totalCount: number;
+  totalPages: number;
+};
+
 // ── Administración (superadmin) ───────────────────────
 // Tenant real (tabla "tenants"). A diferencia del tenantId de las
 // entidades de negocio de abajo (que lo mantienen como string por
@@ -169,6 +179,8 @@ export type Vehicle = {
   plate: string;
   currentMileage: number;
   createdAt: string;
+  /** Solo viene en GET /vehicles paginado (join contra clientes). */
+  clientName?: string | null;
 };
 
 export type VehicleCreateRequest = {
@@ -211,6 +223,10 @@ export type Budget = {
   notes: string | null;
   vehicleId: number;
   serviceId: number | null;
+  /** Solo vienen en GET /budgets paginado (join contra vehiculos). */
+  vehiclePlate?: string | null;
+  vehicleBrand?: string | null;
+  vehicleModel?: string | null;
 };
 
 export type BudgetWithDetails = {
@@ -281,6 +297,11 @@ export type Invoice = {
   status: InvoiceStatus;
   serviceId: number;
   budgetId: number | null;
+  /** Solo vienen en GET /invoices paginado (join contra services/vehiculos). */
+  vehicleId?: number | null;
+  vehiclePlate?: string | null;
+  vehicleBrand?: string | null;
+  vehicleModel?: string | null;
 };
 
 export type InvoiceCreateRequest = {

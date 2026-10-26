@@ -1,30 +1,30 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { FlatList, Pressable, Text, View } from "react-native";
-import { useClients } from "@/hooks/useClients";
 import { useVehicles } from "@/hooks/useVehicles";
+import { useDebouncedValue } from "@/hooks/useDebouncedValue";
+import { usePagedItems } from "@/hooks/usePagedItems";
+import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import type { Vehicle } from "@/types/entities";
 
 export function VehicleSearch({ onSelect }: { onSelect: (vehicle: Vehicle) => void }) {
+  const [page, setPage] = useState(1);
   const [term, setTerm] = useState("");
-  const { data: vehicles, isLoading } = useVehicles();
-  const { data: clients } = useClients();
+  const debouncedTerm = useDebouncedValue(term);
+  // Búsqueda server-side (patente/marca/modelo/cliente, ver
+  // VehicleRepository.GetPaged) — antes esto bajaba TODOS los vehículos
+  // del tenant para filtrar acá en el dispositivo.
+  const { data: vehiclesPage, isLoading, isFetching } = useVehicles({ page, pageSize: 20, search: debouncedTerm || undefined });
+  const vehicles = usePagedItems(vehiclesPage);
+  const canLoadMore = !!vehiclesPage && vehiclesPage.page < vehiclesPage.totalPages;
 
-  const clientsById = useMemo(() => {
-    const map = new Map<number, string>();
-    clients?.forEach((c) => map.set(c.clientId, c.name));
-    return map;
-  }, [clients]);
-
-  const filtered = useMemo(() => {
-    if (!vehicles) return [];
-    const words = term.toLowerCase().trim().split(/\s+/).filter(Boolean);
-    if (!words.length) return vehicles;
-    return vehicles.filter((v) => {
-      const haystack = `${clientsById.get(v.clientId) ?? ""} ${v.plate} ${v.brand} ${v.model}`.toLowerCase();
-      return words.every((w) => haystack.includes(w));
-    });
-  }, [vehicles, term, clientsById]);
+  // Reset de página al cambiar el buscador — ajuste de estado durante el
+  // render (patrón recomendado por React), no un efecto.
+  const [termForPage, setTermForPage] = useState(debouncedTerm);
+  if (debouncedTerm !== termForPage) {
+    setTermForPage(debouncedTerm);
+    setPage(1);
+  }
 
   return (
     <FlatList
@@ -42,7 +42,7 @@ export function VehicleSearch({ onSelect }: { onSelect: (vehicle: Vehicle) => vo
           />
         </View>
       }
-      data={filtered}
+      data={vehicles}
       keyExtractor={(v) => String(v.vehicleId)}
       ListEmptyComponent={
         <Text className="mt-8 text-center text-sm text-muted">
@@ -59,11 +59,20 @@ export function VehicleSearch({ onSelect }: { onSelect: (vehicle: Vehicle) => vo
               {item.brand} {item.model}
             </Text>
             <Text className="text-sm text-accent">{item.plate}</Text>
-            <Text className="text-xs text-muted">{clientsById.get(item.clientId) ?? `Cliente #${item.clientId}`}</Text>
+            <Text className="text-xs text-muted">{item.clientName ?? `Cliente #${item.clientId}`}</Text>
           </View>
           <Text className="text-xl text-muted">›</Text>
         </Pressable>
       )}
+      ListFooterComponent={
+        canLoadMore ? (
+          <View className="mt-1">
+            <Button variant="secondary" loading={isFetching} onPress={() => setPage((p) => p + 1)}>
+              Cargar más
+            </Button>
+          </View>
+        ) : null
+      }
     />
   );
 }

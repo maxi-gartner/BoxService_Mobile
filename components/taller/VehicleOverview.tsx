@@ -1,18 +1,15 @@
 import { ScrollView, Text, View } from "react-native";
-import { useBudgets } from "@/hooks/useBudgets";
-import { useServices } from "@/hooks/useServices";
+import { useBudgetsByVehicle } from "@/hooks/useBudgets";
+import { useServicesByVehicle } from "@/hooks/useServices";
 import { Card } from "@/components/ui/Card";
 import { formatDate } from "@/lib/utils";
 import type { Vehicle } from "@/types/entities";
 
 export function VehicleOverview({ vehicle }: { vehicle: Vehicle }) {
-  const { data: budgets = [], isLoading: loadingBudgets } = useBudgets();
-  const { data: services = [], isLoading: loadingServices } = useServices();
+  const { data: vehicleBudgets = [], isLoading: loadingBudgets } = useBudgetsByVehicle(vehicle.vehicleId);
+  const { data: services = [], isLoading: loadingServices } = useServicesByVehicle(vehicle.vehicleId);
 
-  const vehicleBudgets = budgets.filter((b) => b.vehicleId === vehicle.vehicleId);
-  const vehicleServices = services
-    .filter((s) => s.vehicleId === vehicle.vehicleId)
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  const vehicleServices = [...services].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   const pendingBudgets = vehicleBudgets.filter((b) => b.status === "draft" || b.status === "sent").length;
   const latestService = vehicleServices[0];
   const loading = loadingBudgets || loadingServices;

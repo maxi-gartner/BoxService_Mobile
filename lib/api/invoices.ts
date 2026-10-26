@@ -1,8 +1,12 @@
-import { api } from "./client";
-import type { Invoice, InvoiceCreateRequest, InvoiceStatus } from "@/types/entities";
+import { api, buildQuery } from "./client";
+import type { Invoice, InvoiceCreateRequest, InvoiceStatus, PagedResult } from "@/types/entities";
 
 export const invoicesApi = {
-  list: () => api.get<Invoice[]>("invoices"),
+  list: (params: { page?: number; pageSize?: number; status?: "todas" | "por-cobrar" } = {}) =>
+    api.get<PagedResult<Invoice>>(`invoices${buildQuery(params)}`),
+  // Sin paginar — todas las facturas de un vehículo puntual (lo usa
+  // InvoicingList en el Taller en vez de pedir el listado global).
+  listByVehicle: (vehicleId: number) => api.get<Invoice[]>(`invoices${buildQuery({ vehicleId })}`),
   getById: (id: number) => api.get<Invoice>(`invoices/${id}`),
   // create/updateStatus: no se usan desde la UI todavía — ver
   // components/taller/BudgetsList.tsx, "Facturar" muestra "Próximamente".

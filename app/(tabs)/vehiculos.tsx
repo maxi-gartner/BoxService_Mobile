@@ -1,8 +1,10 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { FlatList, Pressable, Text, View } from "react-native";
 import { useClients } from "@/hooks/useClients";
 import { useCreateVehicle, useVehicles } from "@/hooks/useVehicles";
 import { useVehicleBrands, useVehicleModels, useVehicleVersions } from "@/hooks/useVehicleCatalog";
+import { useDebouncedValue } from "@/hooks/useDebouncedValue";
+import { usePagedItems } from "@/hooks/usePagedItems";
 import { ApiClientError } from "@/lib/api/client";
 import { Banner } from "@/components/ui/Banner";
 import { Button } from "@/components/ui/Button";
@@ -15,20 +17,29 @@ const OTHER_MODEL = "__otro__";
 const OTHER_VERSION = "__otra_version__";
 
 export default function VehiculosScreen() {
-  const { data: vehicles, isLoading } = useVehicles();
-  const { data: clients } = useClients();
+  const [page, setPage] = useState(1);
+  const [search, setSearch] = useState("");
+  const debouncedSearch = useDebouncedValue(search);
+  const { data: vehiclesPage, isLoading, isFetching } = useVehicles({ page, pageSize: 20, search: debouncedSearch || undefined });
+  const vehicles = usePagedItems(vehiclesPage);
+  const canLoadMore = !!vehiclesPage && vehiclesPage.page < vehiclesPage.totalPages;
+  // El picker de "Cliente" del alta necesita la lista completa (combo),
+  // no una página — ver comentario en ClientService.ListPaged (backend).
+  const { data: clientsPage } = useClients({ pageSize: 200 });
+  const clients = clientsPage?.items;
   const createVehicle = useCreateVehicle();
-
-  const clientsById = useMemo(() => {
-    const map = new Map<number, string>();
-    clients?.forEach((c) => map.set(c.clientId, c.name));
-    return map;
-  }, [clients]);
 
   const { data: brands } = useVehicleBrands();
 
-  const [search, setSearch] = useState("");
   const [showForm, setShowForm] = useState(false);
+
+  // Reset de página al cambiar el buscador — ajuste de estado durante el
+  // render (patrón recomendado por React), no un efecto.
+  const [searchForPage, setSearchForPage] = useState(debouncedSearch);
+  if (debouncedSearch !== searchForPage) {
+    setSearchForPage(debouncedSearch);
+    setPage(1);
+  }
   const [clientId, setClientId] = useState("");
   const [plate, setPlate] = useState("");
   const [brand, setBrand] = useState("");
@@ -122,13 +133,6 @@ export default function VehiculosScreen() {
     }
   }
 
-  const term = search.trim().toLowerCase();
-  const filtered = (vehicles ?? []).filter((v) => {
-    if (!term) return true;
-    const clientName = clientsById.get(v.clientId) ?? "";
-    return [v.plate, v.brand, v.model, clientName].join(" ").toLowerCase().includes(term);
-  });
-
   return (
     <Screen>
       <View className="flex-row items-center justify-between border-b border-border bg-surface px-4 py-3">
@@ -142,7 +146,7 @@ export default function VehiculosScreen() {
         className="flex-1"
         contentContainerClassName="gap-3 p-4"
         keyboardShouldPersistTaps="handled"
-        data={filtered}
+        data={vehicles}
         keyExtractor={(v) => String(v.vehicleId)}
         ListHeaderComponent={
           <View className="mb-1 gap-3">
@@ -232,7 +236,7 @@ export default function VehiculosScreen() {
         }
         ListEmptyComponent={
           <Text className="mt-8 text-center text-sm text-muted">
-            {isLoading ? "Cargando..." : term ? "Ningún vehículo coincide con la búsqueda." : "No hay vehículos registrados."}
+            {isLoading ? "Cargando..." : debouncedSearch ? "Ningún vehículo coincide con la búsqueda." : "No hay vehículos registrados."}
           </Text>
         }
         renderItem={({ item }) => (
@@ -243,11 +247,20 @@ export default function VehiculosScreen() {
             {!!item.version && <Text className="text-xs text-muted">{item.version}</Text>}
             <Text className="text-sm text-accent">{item.plate}</Text>
             <Text className="text-xs text-muted">
-              {clientsById.get(item.clientId) ?? `Cliente #${item.clientId}`}
+              {item.clientName ?? `Cliente #${item.clientId}`}
               {item.year ? ` · ${item.year}` : ""} · {item.currentMileage.toLocaleString("es-AR")} km
             </Text>
           </View>
         )}
+        ListFooterComponent={
+          canLoadMore ? (
+            <View className="mt-1">
+              <Button variant="secondary" loading={isFetching} onPress={() => setPage((p) => p + 1)}>
+                Cargar más
+              </Button>
+            </View>
+          ) : null
+        }
       />
     </Screen>
   );

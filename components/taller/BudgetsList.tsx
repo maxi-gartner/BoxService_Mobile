@@ -5,7 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import {
   useAssignServiceToBudget,
   useBudget,
-  useBudgets,
+  useBudgetsByVehicle,
   useUpdateBudgetDetails,
   useUpdateBudgetStatus,
 } from "@/hooks/useBudgets";
@@ -52,7 +52,7 @@ function EditablePanel({ budgetId, canFinalize, onSave, onFinalize, busy }: {
 }
 
 export function BudgetsList({ vehicle }: { vehicle: Vehicle }) {
-  const { data: budgets, isLoading } = useBudgets();
+  const { data: budgets, isLoading } = useBudgetsByVehicle(vehicle.vehicleId);
   const { data: client } = useQuery({
     queryKey: ["clients", vehicle.clientId],
     queryFn: () => clientsApi.getById(vehicle.clientId),
@@ -68,7 +68,7 @@ export function BudgetsList({ vehicle }: { vehicle: Vehicle }) {
   const [printingId, setPrintingId] = useState<number | null>(null);
   const [editingId, setEditingId] = useState<number | null>(null);
 
-  const mine = (budgets ?? []).filter((b) => b.vehicleId === vehicle.vehicleId);
+  const mine = budgets ?? [];
 
   async function handleApprove(id: number) {
     setWorkingId(id);

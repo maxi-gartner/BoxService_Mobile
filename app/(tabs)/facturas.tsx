@@ -1,9 +1,10 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { FlatList, Text, View } from "react-native";
 import { useInvoices } from "@/hooks/useInvoices";
-import { useServices } from "@/hooks/useServices";
-import { useVehicles } from "@/hooks/useVehicles";
-import { useClients } from "@/hooks/useClients";
+import { usePagedItems } from "@/hooks/usePagedItems";
+import { servicesApi } from "@/lib/api/services";
+import { vehiclesApi } from "@/lib/api/vehicles";
+import { clientsApi } from "@/lib/api/clients";
 import { budgetsApi } from "@/lib/api/budgets";
 import { ApiClientError } from "@/lib/api/client";
 import { printFactura } from "@/lib/pdf";
@@ -12,42 +13,28 @@ import { Banner } from "@/components/ui/Banner";
 import { Button } from "@/components/ui/Button";
 import { Screen } from "@/components/ui/Screen";
 import { formatDate, formatMoney } from "@/lib/utils";
-import type { Invoice, Service, Vehicle } from "@/types/entities";
+import type { Invoice } from "@/types/entities";
 
 export default function FacturasScreen() {
-  const { data: invoices, isLoading } = useInvoices();
-  const { data: services } = useServices();
-  const { data: vehicles } = useVehicles();
-  const { data: clients } = useClients();
+  const [page, setPage] = useState(1);
+  const { data: invoicesPage, isLoading, isFetching } = useInvoices({ page, pageSize: 20 });
+  const rows = usePagedItems(invoicesPage);
+  const canLoadMore = !!invoicesPage && invoicesPage.page < invoicesPage.totalPages;
 
   const [printingId, setPrintingId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const servicesById = useMemo(() => new Map((services ?? []).map((s) => [s.serviceId, s])), [services]);
-  const vehiclesById = useMemo(() => new Map((vehicles ?? []).map((v) => [v.vehicleId, v])), [vehicles]);
-  const clientsById = useMemo(() => new Map((clients ?? []).map((c) => [c.clientId, c])), [clients]);
-
-  const vehicleByService = useMemo(() => {
-    const map = new Map<number, string>();
-    for (const s of services ?? []) {
-      const v = vehiclesById.get(s.vehicleId);
-      map.set(s.serviceId, v ? `${v.plate} — ${v.brand} ${v.model}` : `Service #${s.serviceId}`);
-    }
-    return map;
-  }, [services, vehiclesById]);
-
+  // Antes esta pantalla bajaba TODOS los services, vehículos y clientes
+  // del tenant solo para poder resolverlos al imprimir — ahora se piden
+  // uno por uno, recién al tocar "Imprimir", igual que ya se hacía con
+  // el presupuesto (budgetsApi.getById).
   async function handlePrint(invoice: Invoice) {
-    const service: Service | undefined = servicesById.get(invoice.serviceId);
-    const vehicle: Vehicle | undefined = service ? vehiclesById.get(service.vehicleId) : undefined;
-    const client = vehicle ? clientsById.get(vehicle.clientId) : undefined;
-    if (!service || !vehicle || !client) {
-      setError("Todavía se están cargando los datos del service — probá de nuevo en un segundo.");
-      return;
-    }
-
     setError(null);
     setPrintingId(invoice.invoiceId);
     try {
+      const service = await servicesApi.getById(invoice.serviceId);
+      const vehicle = await vehiclesApi.getById(service.vehicleId);
+      const client = await clientsApi.getById(vehicle.clientId);
       const budget = invoice.budgetId ? await budgetsApi.getById(invoice.budgetId) : null;
       await printFactura({
         number: invoice.number,
@@ -66,8 +53,6 @@ export default function FacturasScreen() {
       setPrintingId(null);
     }
   }
-
-  const rows = (invoices ?? []).slice().sort((a, b) => b.invoiceId - a.invoiceId);
 
   return (
     <Screen>
@@ -98,7 +83,9 @@ export default function FacturasScreen() {
               <Text className="font-semibold text-accent">{item.number}</Text>
               <Badge status={item.status} />
             </View>
-            <Text className="text-sm text-light">{vehicleByService.get(item.serviceId) ?? `Service #${item.serviceId}`}</Text>
+            <Text className="text-sm text-light">
+              {item.vehiclePlate ? `${item.vehiclePlate} — ${item.vehicleBrand} ${item.vehicleModel}` : `Service #${item.serviceId}`}
+            </Text>
             <View className="flex-row items-center justify-between">
               <Text className="text-xs text-muted">{formatDate(item.date)}</Text>
               <Text className="font-bold text-light">{formatMoney(item.total)}</Text>
@@ -108,6 +95,15 @@ export default function FacturasScreen() {
             </Button>
           </View>
         )}
+        ListFooterComponent={
+          canLoadMore ? (
+            <View className="mt-1">
+              <Button variant="secondary" loading={isFetching} onPress={() => setPage((p) => p + 1)}>
+                Cargar más
+              </Button>
+            </View>
+          ) : null
+        }
       />
     </Screen>
   );

@@ -5,10 +5,21 @@ import type { BudgetCreateRequest, BudgetDetailRequest, BudgetStatus } from "@/t
 // Estado del taller en vivo: más de un puesto puede aprobar/cambiar un
 // presupuesto al mismo tiempo — mismo criterio que la web, refetch al
 // volver a enfocar la pantalla.
-export function useBudgets() {
+export function useBudgets(params: { page?: number; pageSize?: number; status?: "todos" | "pendientes" } = {}) {
   return useQuery({
-    queryKey: ["budgets"],
-    queryFn: budgetsApi.list,
+    queryKey: ["budgets", params],
+    queryFn: () => budgetsApi.list(params),
+    staleTime: 15_000,
+  });
+}
+
+// Presupuestos de un vehículo puntual (Taller) — sin paginar, un
+// vehículo nunca acumula miles de presupuestos propios.
+export function useBudgetsByVehicle(vehicleId: number | null) {
+  return useQuery({
+    queryKey: ["budgets", "byVehicle", vehicleId],
+    queryFn: () => budgetsApi.listByVehicle(vehicleId as number),
+    enabled: vehicleId !== null,
     staleTime: 15_000,
   });
 }

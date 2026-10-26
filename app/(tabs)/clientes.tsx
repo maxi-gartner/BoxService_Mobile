@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { FlatList, Linking, Pressable, Text, View } from "react-native";
 import { useClientVehicles, useClients, useCreateClient, useInvitePortal } from "@/hooks/useClients";
+import { useDebouncedValue } from "@/hooks/useDebouncedValue";
+import { usePagedItems } from "@/hooks/usePagedItems";
 import { ApiClientError } from "@/lib/api/client";
 import { Banner } from "@/components/ui/Banner";
 import { Button } from "@/components/ui/Button";
@@ -9,9 +11,22 @@ import { Screen } from "@/components/ui/Screen";
 import type { Client } from "@/types/entities";
 
 export default function ClientesScreen() {
-  const { data: clients, isLoading } = useClients();
+  const [page, setPage] = useState(1);
+  const [search, setSearch] = useState("");
+  const debouncedSearch = useDebouncedValue(search);
+  const { data: clientsPage, isLoading, isFetching } = useClients({ page, pageSize: 20, search: debouncedSearch || undefined });
+  const clients = usePagedItems(clientsPage);
+  const canLoadMore = !!clientsPage && clientsPage.page < clientsPage.totalPages;
   const createClient = useCreateClient();
   const invitePortal = useInvitePortal();
+
+  // Reset de página al cambiar el buscador — ajuste de estado durante el
+  // render (patrón recomendado por React), no un efecto.
+  const [searchForPage, setSearchForPage] = useState(debouncedSearch);
+  if (debouncedSearch !== searchForPage) {
+    setSearchForPage(debouncedSearch);
+    setPage(1);
+  }
 
   const [showForm, setShowForm] = useState(false);
   const [name, setName] = useState("");
@@ -113,7 +128,7 @@ export default function ClientesScreen() {
         className="flex-1"
         contentContainerClassName="gap-3 p-4"
         keyboardShouldPersistTaps="handled"
-        data={clients ?? []}
+        data={clients}
         keyExtractor={(c) => String(c.clientId)}
         ListHeaderComponent={
           <View className="mb-1 gap-3">
@@ -136,10 +151,22 @@ export default function ClientesScreen() {
               </View>
             )}
             {inviteMessage && <Banner type={inviteMessage.type}>{inviteMessage.text}</Banner>}
+            <Input placeholder="Buscar por nombre, teléfono o email…" value={search} onChangeText={setSearch} autoCapitalize="none" />
           </View>
         }
         ListEmptyComponent={
-          <Text className="mt-8 text-center text-sm text-muted">{isLoading ? "Cargando..." : "No hay clientes cargados."}</Text>
+          <Text className="mt-8 text-center text-sm text-muted">
+            {isLoading ? "Cargando..." : debouncedSearch ? "Ningún cliente coincide con la búsqueda." : "No hay clientes cargados."}
+          </Text>
+        }
+        ListFooterComponent={
+          canLoadMore ? (
+            <View className="mt-1">
+              <Button variant="secondary" loading={isFetching} onPress={() => setPage((p) => p + 1)}>
+                Cargar más
+              </Button>
+            </View>
+          ) : null
         }
         renderItem={({ item }) => (
           <View className="gap-2 rounded-lg border border-border bg-surface p-4">

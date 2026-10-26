@@ -2,8 +2,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { vehiclesApi } from "@/lib/api/vehicles";
 import type { VehicleCreateRequest } from "@/types/entities";
 
-export function useVehicles() {
-  return useQuery({ queryKey: ["vehicles"], queryFn: vehiclesApi.list });
+export function useVehicles(params: { page?: number; pageSize?: number; search?: string } = {}) {
+  return useQuery({ queryKey: ["vehicles", params], queryFn: () => vehiclesApi.list(params) });
 }
 
 export function useCreateVehicle() {
